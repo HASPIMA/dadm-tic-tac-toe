@@ -12,8 +12,8 @@ public class TicTacToeGame {
     public static final char COMPUTER_PLAYER = 'O';
     public static final char OPEN_SPOT = ' ';
 
-    private char mBoard[] = new char[BOARD_SIZE];
-    private Random mRand;
+    private final char[] mBoard = new char[BOARD_SIZE];
+    private final Random mRand;
 
     public TicTacToeGame() {
         // Seed the random number generator
