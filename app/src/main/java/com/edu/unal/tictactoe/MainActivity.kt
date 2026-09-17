@@ -216,9 +216,9 @@ fun TicTacToeBoard(game: TicTacToeGame, modifier: Modifier, resetKey: Int) {
             modifier = Modifier.padding(top = 12.dp),
             horizontalArrangement = Arrangement.spacedBy(24.dp)
         ) {
-            Text(stringResource(R.string.number_wins_human, humanWins))
-            Text(stringResource(R.string.number_ties, ties))
             Text(stringResource(R.string.number_computer_wins, computerWins))
+            Text(stringResource(R.string.number_ties, ties))
+            Text(stringResource(R.string.number_wins_human, humanWins))
         }
 
         Button(
