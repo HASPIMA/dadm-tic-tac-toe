@@ -21,15 +21,18 @@ public class TicTacToeGame {
         clearBoard();
     }
 
-    /** Clear the board of all X's and O's by setting all spots to OPEN_SPOT. */
+    /**
+     * Clear the board of all X's and O's by setting all spots to OPEN_SPOT.
+     */
     public void clearBoard() {
         Arrays.fill(mBoard, OPEN_SPOT);
     }
 
-    /** Set the given player at the given location on the game board.
+    /**
+     * Set the given player at the given location on the game board.
      * The location must be available, or the board will not be changed.
      *
-     * @param player - The HUMAN_PLAYER or COMPUTER_PLAYER
+     * @param player   - The HUMAN_PLAYER or COMPUTER_PLAYER
      * @param location - The location (0-8) to place the move
      */
     public void setMove(char player, int location) {
@@ -38,7 +41,9 @@ public class TicTacToeGame {
         }
     }
 
-    /** Return the occupant of the given location on the game board.
+    /**
+     * Return the occupant of the given location on the game board.
+     *
      * @param location - The location (0-8)
      * @return The character occupant ('X', 'O', or ' ')
      */
@@ -49,8 +54,10 @@ public class TicTacToeGame {
         return OPEN_SPOT;
     }
 
-    /** Return the best move for the computer to make. You must call setMove()
+    /**
+     * Return the best move for the computer to make. You must call setMove()
      * to actually make the computer move to that location.
+     *
      * @return The best move for the computer to make (0-8).
      */
     public int getComputerMove() {
@@ -90,6 +97,7 @@ public class TicTacToeGame {
 
     /**
      * Check for a winner and return a status value indicating who has won.
+     *
      * @return Return 0 if no winner or tie yet, 1 if it's a tie, 2 if X won,
      * or 3 if O won.
      */
@@ -121,7 +129,7 @@ public class TicTacToeGame {
         // Check diagonal wins
         if ((mBoard[0] == HUMAN_PLAYER &&
                 mBoard[4] == HUMAN_PLAYER &&
-                mBoard[8]  == HUMAN_PLAYER) ||
+                mBoard[8] == HUMAN_PLAYER) ||
                 (mBoard[2] == HUMAN_PLAYER &&
                         mBoard[4] == HUMAN_PLAYER &&
                         mBoard[6] == HUMAN_PLAYER))
