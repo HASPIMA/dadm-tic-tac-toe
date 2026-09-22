@@ -5,11 +5,10 @@ import java.util.Random
 
 class TicTacToeGame {
     private val mBoard = CharArray(BOARD_SIZE)
-    private val mRand: Random
+    // Seed the random number generator
+    private val mRand: Random = Random()
 
     init {
-        // Seed the random number generator
-        mRand = Random()
         clearBoard()
     }
 
