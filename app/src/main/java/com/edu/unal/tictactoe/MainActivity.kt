@@ -126,6 +126,7 @@ fun TicTacToeApp() {
                                 DifficultyLevel.Harder -> stringResource(R.string.difficulty_harder)
                                 DifficultyLevel.Expert -> stringResource(R.string.difficulty_expert)
                             }
+                            val toastMessage = stringResource(R.string.difficulty_changed, label)
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
@@ -137,7 +138,7 @@ fun TicTacToeApp() {
                                             showDifficultyDialog = false
                                             Toast.makeText(
                                                 context,
-                                                context.getString(R.string.difficulty_changed, label),
+                                                toastMessage,
                                                 Toast.LENGTH_SHORT
                                             ).show()
                                         },
