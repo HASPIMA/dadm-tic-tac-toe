@@ -1,5 +1,6 @@
 package com.edu.unal.tictactoe
 
+import com.edu.unal.tictactoe.DifficultyLevel
 import java.util.Arrays
 import java.util.Random
 
@@ -10,8 +11,11 @@ class TicTacToeGame {
     // Seed the random number generator
     private val mRand: Random = Random()
 
+    var computerDifficultyLevel: DifficultyLevel
+
     init {
         clearBoard()
+        this.computerDifficultyLevel = DifficultyLevel.Expert
     }
 
     /**
