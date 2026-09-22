@@ -27,7 +27,7 @@ class TicTacToeGame {
      * @param location - The location (0-8) to place the move
      */
     fun setMove(player: Char, location: Int) {
-        if (location >= 0 && location < BOARD_SIZE && mBoard[location] == OPEN_SPOT) {
+        if (location in 0..<BOARD_SIZE && mBoard[location] == OPEN_SPOT) {
             mBoard[location] = player
         }
     }
@@ -39,7 +39,7 @@ class TicTacToeGame {
      * @return The character occupant ('X', 'O', or ' ')
      */
     fun getBoardOccupant(location: Int): Char {
-        if (location >= 0 && location < BOARD_SIZE) {
+        if (location in 0..<BOARD_SIZE) {
             return mBoard[location]
         }
         return OPEN_SPOT
