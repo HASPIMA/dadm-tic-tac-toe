@@ -53,8 +53,6 @@ class TicTacToeGame {
      * @return The best move for the computer to make (0-8).
      */
     fun getComputerMove(): Int {
-        var move: Int
-
         // First see if there's a move O can make to win
         for (i in 0..<BOARD_SIZE) {
             if (mBoard[i] == OPEN_SPOT) {
@@ -79,11 +77,14 @@ class TicTacToeGame {
             }
         }
 
-        // Generate random move
+        return getRandomMove()
+    }
+
+    private fun getRandomMove(): Int {
+        var move: Int
         do {
             move = mRand.nextInt(BOARD_SIZE)
         } while (mBoard[move] != OPEN_SPOT)
-
         return move
     }
 
