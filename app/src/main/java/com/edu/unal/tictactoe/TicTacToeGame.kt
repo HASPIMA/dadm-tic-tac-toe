@@ -5,12 +5,16 @@ import java.util.Random
 
 class TicTacToeGame {
     private val mBoard = CharArray(BOARD_SIZE)
+    private val noMove = -1
 
     // Seed the random number generator
     private val mRand: Random = Random()
 
+    var computerDifficultyLevel: DifficultyLevel
+
     init {
         clearBoard()
+        this.computerDifficultyLevel = DifficultyLevel.Expert
     }
 
     /**
@@ -28,7 +32,7 @@ class TicTacToeGame {
      * @param location - The location (0-8) to place the move
      */
     fun setMove(player: Char, location: Int) {
-        if (location in 0..<BOARD_SIZE && mBoard[location] == OPEN_SPOT) {
+        if ((location in 0..<BOARD_SIZE) && mBoard[location] == OPEN_SPOT) {
             mBoard[location] = player
         }
     }
@@ -53,9 +57,32 @@ class TicTacToeGame {
      * @return The best move for the computer to make (0-8).
      */
     fun getComputerMove(): Int {
-        var move: Int
+        var move: Int = noMove
 
-        // First see if there's a move O can make to win
+        if (computerDifficultyLevel == DifficultyLevel.Easy) {
+            move = getRandomMove()
+        } else if (computerDifficultyLevel == DifficultyLevel.Harder) {
+            move = getBlockingMove()
+
+            if (move == noMove) {
+                move = getRandomMove()
+            }
+        } else if (computerDifficultyLevel == DifficultyLevel.Expert) {
+            move = getWinningMove()
+
+            if (move == noMove) {
+                move = getBlockingMove()
+            }
+
+            if (move == noMove) {
+                move = getRandomMove()
+            }
+        }
+
+        return move
+    }
+
+    private fun getWinningMove(): Int {
         for (i in 0..<BOARD_SIZE) {
             if (mBoard[i] == OPEN_SPOT) {
                 mBoard[i] = COMPUTER_PLAYER
@@ -66,8 +93,10 @@ class TicTacToeGame {
                 mBoard[i] = OPEN_SPOT
             }
         }
+        return noMove
+    }
 
-        // See if there's a move O can make to block X from winning
+    private fun getBlockingMove(): Int {
         for (i in 0..<BOARD_SIZE) {
             if (mBoard[i] == OPEN_SPOT) {
                 mBoard[i] = HUMAN_PLAYER
@@ -78,13 +107,18 @@ class TicTacToeGame {
                 mBoard[i] = OPEN_SPOT
             }
         }
+        return noMove
+    }
 
-        // Generate random move
-        do {
-            move = mRand.nextInt(BOARD_SIZE)
-        } while (mBoard[move] != OPEN_SPOT)
-
-        return move
+    private fun getRandomMove(): Int {
+        val openSpots = mutableListOf<Int>()
+        for (i in 0..<BOARD_SIZE) {
+            if (mBoard[i] == OPEN_SPOT) {
+                openSpots.add(i)
+            }
+        }
+        if (openSpots.isEmpty()) return noMove
+        return openSpots[mRand.nextInt(openSpots.size)]
     }
 
     /**

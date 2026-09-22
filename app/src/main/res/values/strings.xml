@@ -10,4 +10,17 @@
     <string name="number_wins_human">Human: %1$d</string>
     <string name="number_ties">Ties: %1$d</string>
     <string name="number_computer_wins">Computer: %1$d</string>
+    <string name="ai_difficulty">AI Difficulty</string>
+    <string name="quit_game">Quit Game</string>
+    <string name="difficulty_title">Choose Difficulty</string>
+    <string name="difficulty_easy">Easy</string>
+    <string name="difficulty_harder">Harder</string>
+    <string name="difficulty_expert">Expert</string>
+    <string name="difficulty_changed">Difficulty set to %1$s</string>
+    <string name="quit_confirm_title">Quit Game</string>
+    <string name="quit_confirm_message">Are you sure you want to quit?</string>
+    <string name="yes">Yes</string>
+    <string name="no">No</string>
+    <string name="cancel">Cancel</string>
+    <string name="menu">Menu</string>
 </resources>
