@@ -108,11 +108,12 @@ fun TicTacToeBoard(game: TicTacToeGame, modifier: Modifier, resetKey: Int) {
     }
 
     // Update scoreboard
-    fun recordResult(winner: Int) {
+    fun recordResult(winner: Winner) {
         when (winner) {
-            1 -> ties++
-            2 -> humanWins++
-            3 -> computerWins++
+            Winner.TIE -> ties++
+            Winner.X -> humanWins++
+            Winner.O -> computerWins++
+            else -> {}
         }
     }
 
@@ -158,7 +159,7 @@ fun TicTacToeBoard(game: TicTacToeGame, modifier: Modifier, resetKey: Int) {
         var winner = game.checkForWinner()
 
         // --- Computer's turn if game not finished ---
-        if (winner == 0) {
+        if (winner == Winner.NOBODY) {
             val move = game.getComputerMove()
             game.setMove(TicTacToeGame.COMPUTER_PLAYER, move)
             board = board.toMutableList().also {
@@ -168,14 +169,14 @@ fun TicTacToeBoard(game: TicTacToeGame, modifier: Modifier, resetKey: Int) {
         }
 
         gameStatusResId = when (winner) {
-            0 -> R.string.human_turn
-            1 -> R.string.result_tie
-            2 -> R.string.result_human_wins
-            3 -> R.string.result_computer_wins
+            Winner.NOBODY -> R.string.human_turn
+            Winner.TIE -> R.string.result_tie
+            Winner.X -> R.string.result_human_wins
+            Winner.O -> R.string.result_computer_wins
             else -> gameStatusResId
         }
 
-        if (winner != 0) {
+        if (winner != Winner.NOBODY) {
             gameOver = true
             recordResult(winner)
         }
