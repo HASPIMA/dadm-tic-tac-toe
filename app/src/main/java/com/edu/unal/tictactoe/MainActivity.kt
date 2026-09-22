@@ -46,6 +46,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.edu.unal.tictactoe.ui.theme.TicTacToeTheme
+import androidx.core.view.get
 
 class MainActivity : ComponentActivity() {
 
@@ -81,7 +82,7 @@ fun TicTacToeApp() {
         val popup = PopupMenu(context, View(context))
         popup.menuInflater.inflate(R.menu.options_menu, popup.menu)
         val menu = popup.menu
-        List(menu.size()) { index -> menu.getItem(index) }
+        List(menu.size()) { index -> menu[index] }
     }
 
     Scaffold(
