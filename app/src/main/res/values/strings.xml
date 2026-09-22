@@ -1,3 +1,13 @@
 <resources>
     <string name="app_name">TicTacToe</string>
+    <string name="human_turn">Human\'s Turn</string>
+    <string name="new_game">New game</string>
+    <string name="result_tie">It\'s a tie</string>
+    <string name="result_human_wins">Human has won</string>
+    <string name="result_computer_wins">Computer has won</string>
+    <string name="computer_turn">Computer\'s Turn</string>
+    <string name="new_game_button">New game</string>
+    <string name="number_wins_human">Human: %1$d</string>
+    <string name="number_ties">Ties: %1$d</string>
+    <string name="number_computer_wins">Computer: %1$d</string>
 </resources>
