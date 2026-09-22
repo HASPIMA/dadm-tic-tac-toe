@@ -58,18 +58,26 @@ class TicTacToeGame {
      * @return The best move for the computer to make (0-8).
      */
     fun getComputerMove(): Int {
-        var move: Int
+        var move: Int = noMove
 
-        // First see if there's a move O can make to win
-        move = getWinningMove()
-
-        // See if there's a move O can make to block X from winning
-        if (move == noMove) {
-            move = getBlockingMove()
-        }
-
-        if (move == noMove) {
+        if (computerDifficultyLevel == DifficultyLevel.Easy) {
             move = getRandomMove()
+        } else if (computerDifficultyLevel == DifficultyLevel.Harder) {
+            move = getBlockingMove()
+
+            if (move == noMove) {
+                move = getRandomMove()
+            }
+        } else if (computerDifficultyLevel == DifficultyLevel.Expert) {
+            move = getWinningMove()
+
+            if (move == noMove) {
+                move = getBlockingMove()
+            }
+
+            if (move == noMove) {
+                move = getRandomMove()
+            }
         }
 
         return move
