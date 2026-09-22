@@ -5,7 +5,7 @@ import java.util.Random
 
 class TicTacToeGame {
     private val mBoard = CharArray(BOARD_SIZE)
-    private val NO_MOVE = -1
+    private val noMove = -1
 
     // Seed the random number generator
     private val mRand: Random = Random()
@@ -60,11 +60,11 @@ class TicTacToeGame {
         move = getWinningMove()
 
         // See if there's a move O can make to block X from winning
-        if (move == NO_MOVE) {
+        if (move == noMove) {
             move = getBlockingMove()
         }
 
-        if (move == NO_MOVE) {
+        if (move == noMove) {
             move = getRandomMove()
         }
 
@@ -82,7 +82,7 @@ class TicTacToeGame {
                 mBoard[i] = OPEN_SPOT
             }
         }
-        return NO_MOVE
+        return noMove
     }
 
     private fun getBlockingMove(): Int {
@@ -96,7 +96,7 @@ class TicTacToeGame {
                 mBoard[i] = OPEN_SPOT
             }
         }
-        return NO_MOVE
+        return noMove
     }
 
     private fun getRandomMove(): Int {
