@@ -2,6 +2,9 @@ package com.edu.unal.tictactoe
 
 import android.app.Activity
 import android.os.Bundle
+import android.view.Menu
+import android.view.View
+import android.widget.PopupMenu
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -56,6 +59,11 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
+
+    override fun onCreateOptionsMenu(menu: Menu): Boolean {
+        menuInflater.inflate(R.menu.options_menu, menu)
+        return true
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -68,6 +76,13 @@ fun TicTacToeApp() {
     var currentDifficulty by remember { mutableStateOf(game.computerDifficultyLevel) }
     var menuExpanded by remember { mutableStateOf(false) }
     val context = LocalContext.current
+
+    val menuItems = remember(context) {
+        val popup = PopupMenu(context, View(context))
+        popup.menuInflater.inflate(R.menu.options_menu, popup.menu)
+        val menu = popup.menu
+        List(menu.size()) { index -> menu.getItem(index) }
+    }
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
@@ -82,27 +97,19 @@ fun TicTacToeApp() {
                         expanded = menuExpanded,
                         onDismissRequest = { menuExpanded = false }
                     ) {
-                        DropdownMenuItem(
-                            text = { Text(stringResource(R.string.new_game)) },
-                            onClick = {
-                                menuExpanded = false
-                                resetKey++
-                            }
-                        )
-                        DropdownMenuItem(
-                            text = { Text(stringResource(R.string.ai_difficulty)) },
-                            onClick = {
-                                menuExpanded = false
-                                showDifficultyDialog = true
-                            }
-                        )
-                        DropdownMenuItem(
-                            text = { Text(stringResource(R.string.quit_game)) },
-                            onClick = {
-                                menuExpanded = false
-                                showQuitDialog = true
-                            }
-                        )
+                        menuItems.forEach { menuItem ->
+                            DropdownMenuItem(
+                                text = { Text(menuItem.title.toString()) },
+                                onClick = {
+                                    menuExpanded = false
+                                    when (menuItem.itemId) {
+                                        R.id.new_game -> resetKey++
+                                        R.id.ai_difficulty -> showDifficultyDialog = true
+                                        R.id.quit_game -> showQuitDialog = true
+                                    }
+                                }
+                            )
+                        }
                     }
                 }
             )
