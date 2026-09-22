@@ -1,6 +1,5 @@
 package com.edu.unal.tictactoe
 
-import com.edu.unal.tictactoe.DifficultyLevel
 import java.util.Arrays
 import java.util.Random
 
@@ -33,7 +32,7 @@ class TicTacToeGame {
      * @param location - The location (0-8) to place the move
      */
     fun setMove(player: Char, location: Int) {
-        if (location in 0..<BOARD_SIZE && mBoard[location] == OPEN_SPOT) {
+        if ((location in 0..<BOARD_SIZE) && mBoard[location] == OPEN_SPOT) {
             mBoard[location] = player
         }
     }
@@ -112,11 +111,14 @@ class TicTacToeGame {
     }
 
     private fun getRandomMove(): Int {
-        var move: Int
-        do {
-            move = mRand.nextInt(BOARD_SIZE)
-        } while (mBoard[move] != OPEN_SPOT)
-        return move
+        val openSpots = mutableListOf<Int>()
+        for (i in 0..<BOARD_SIZE) {
+            if (mBoard[i] == OPEN_SPOT) {
+                openSpots.add(i)
+            }
+        }
+        if (openSpots.isEmpty()) return noMove
+        return openSpots[mRand.nextInt(openSpots.size)]
     }
 
     /**
