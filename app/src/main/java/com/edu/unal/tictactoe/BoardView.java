@@ -3,9 +3,13 @@ package com.edu.unal.tictactoe;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.Canvas;
+import android.graphics.Color;
 import android.graphics.Paint;
 import android.util.AttributeSet;
 import android.view.View;
+
+import androidx.annotation.NonNull;
 
 public class BoardView extends View {
     // Width of the board grid lines
@@ -36,5 +40,31 @@ public class BoardView extends View {
     public BoardView(Context context, AttributeSet attrs) {
         super(context, attrs);
         initialize();
+    }
+
+    @Override
+    public void onDraw(@NonNull Canvas canvas) {
+        super.onDraw(canvas);
+
+        // Determine the width and height of the View
+        int boardWidth = getWidth();
+        int boardHeight = getHeight();
+
+        // Define lines' color and thickness
+        paint.setColor(Color.LTGRAY);
+        paint.setStrokeWidth(GRID_WIDTH);
+
+        // Draw the two vertical board lines
+        int cellWidth = boardWidth / 3;
+        canvas.drawLine(
+                cellWidth, 0,
+                cellWidth, boardHeight,
+                paint
+        );
+        canvas.drawLine(
+                cellWidth * 2, 0,
+                cellWidth * 2, boardHeight,
+                paint
+        );
     }
 }
