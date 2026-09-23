@@ -6,6 +6,7 @@ import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
+import android.graphics.Rect;
 import android.util.AttributeSet;
 import android.view.View;
 
@@ -20,6 +21,9 @@ public class BoardView extends View {
 
     // Controls the color and thickness of the lines drawn on the board
     private Paint paint;
+
+    private TicTacToeGame game;
+    private final Rect drawingRect = new Rect();
 
     public void initialize() {
         humanBitmap = BitmapFactory.decodeResource(getResources(), R.drawable.x_img);
@@ -79,5 +83,27 @@ public class BoardView extends View {
                 boardWidth, cellHeight * 2,
                 paint
         );
+
+        // Draw all the X and O images
+        if (game != null) {
+            for (int i = 0; i < TicTacToeGame.BOARD_SIZE; i++) {
+                int col = i % 3;
+                int row = i / 3;
+
+                int left = col * cellWidth + GRID_WIDTH;
+                int top = row * cellHeight + GRID_WIDTH;
+                int right = (col + 1) * cellWidth - GRID_WIDTH;
+                int bottom = (row + 1) * cellHeight - GRID_WIDTH;
+
+                char occupant = game.getBoardOccupant(i);
+                if (occupant == TicTacToeGame.HUMAN_PLAYER) {
+                    drawingRect.set(left, top, right, bottom);
+                    canvas.drawBitmap(humanBitmap, null, drawingRect, null);
+                } else if (occupant == TicTacToeGame.COMPUTER_PLAYER) {
+                    drawingRect.set(left, top, right, bottom);
+                    canvas.drawBitmap(computerBitmap, null, drawingRect, null);
+                }
+            }
+        }
     }
 }
