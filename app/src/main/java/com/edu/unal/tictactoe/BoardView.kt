@@ -22,11 +22,6 @@ class BoardView : View {
     private var game: TicTacToeGame? = null
     private val drawingRect = Rect()
 
-    fun initialize() {
-        humanBitmap = BitmapFactory.decodeResource(resources, R.drawable.x_img)
-        computerBitmap = BitmapFactory.decodeResource(resources, R.drawable.o_img)
-        paint = Paint(Paint.ANTI_ALIAS_FLAG)
-    }
 
     fun setGame(game: TicTacToeGame?) {
         this.game = game
@@ -43,21 +38,15 @@ class BoardView : View {
         return super.performClick()
     }
 
-    constructor(context: Context?) : super(context) {
-        initialize()
-    }
+    constructor(context: Context?) : super(context)
 
     constructor(context: Context?, attrs: AttributeSet?, defStyle: Int) : super(
         context,
         attrs,
         defStyle
-    ) {
-        initialize()
-    }
+    )
 
-    constructor(context: Context?, attrs: AttributeSet?) : super(context, attrs) {
-        initialize()
-    }
+    constructor(context: Context?, attrs: AttributeSet?) : super(context, attrs)
 
     public override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
