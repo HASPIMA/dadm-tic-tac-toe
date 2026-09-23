@@ -31,6 +31,23 @@ public class BoardView extends View {
         paint = new Paint(Paint.ANTI_ALIAS_FLAG);
     }
 
+    public void setGame(TicTacToeGame game) {
+        this.game = game;
+    }
+
+    public int getBoardCellWidth() {
+        return getWidth() / 3;
+    }
+
+    public int getBoardCellHeight() {
+        return getHeight() / 3;
+    }
+
+    @Override
+    public boolean performClick() {
+        return super.performClick();
+    }
+
     public BoardView(Context context) {
         super(context);
         initialize();
