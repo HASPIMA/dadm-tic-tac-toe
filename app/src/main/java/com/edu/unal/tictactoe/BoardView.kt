@@ -1,5 +1,6 @@
 package com.edu.unal.tictactoe
 
+import android.content.ContentValues.TAG
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
@@ -8,6 +9,7 @@ import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.Rect
 import android.util.AttributeSet
+import android.util.Log
 import android.view.View
 
 class BoardView : View {
@@ -21,8 +23,8 @@ class BoardView : View {
     private val drawingRect = Rect()
 
     fun initialize() {
-        humanBitmap = BitmapFactory.decodeResource(getResources(), R.drawable.x_img)
-        computerBitmap = BitmapFactory.decodeResource(getResources(), R.drawable.o_img)
+        humanBitmap = BitmapFactory.decodeResource(resources, R.drawable.x_img)
+        computerBitmap = BitmapFactory.decodeResource(resources, R.drawable.o_img)
         paint = Paint(Paint.ANTI_ALIAS_FLAG)
     }
 
@@ -31,12 +33,13 @@ class BoardView : View {
     }
 
     val boardCellWidth: Int
-        get() = getWidth() / 3
+        get() = width / 3
 
     val boardCellHeight: Int
-        get() = getHeight() / 3
+        get() = height / 3
 
     override fun performClick(): Boolean {
+        Log.d(TAG, "performClick")
         return super.performClick()
     }
 
@@ -60,12 +63,12 @@ class BoardView : View {
         super.onDraw(canvas)
 
         // Determine the width and height of the View
-        val boardWidth = getWidth()
-        val boardHeight = getHeight()
+        val boardWidth = width
+        val boardHeight = height
 
         // Define lines' color and thickness
         paint!!.setColor(Color.LTGRAY)
-        paint!!.setStrokeWidth(GRID_WIDTH.toFloat())
+        paint!!.strokeWidth = GRID_WIDTH.toFloat()
 
         // Draw the two vertical board lines
         val cellWidth = boardWidth / 3
