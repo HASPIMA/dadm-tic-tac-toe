@@ -66,5 +66,18 @@ public class BoardView extends View {
                 cellWidth * 2, boardHeight,
                 paint
         );
+
+        // Draw the two horizontal board lines
+        int cellHeight = boardHeight / 3;
+        canvas.drawLine(
+                0, cellHeight,
+                boardWidth, cellHeight,
+                paint
+        );
+        canvas.drawLine(
+                0, cellHeight * 2,
+                boardWidth, cellHeight * 2,
+                paint
+        );
     }
 }
