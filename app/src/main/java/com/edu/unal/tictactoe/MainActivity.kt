@@ -3,6 +3,7 @@ package com.edu.unal.tictactoe
 import android.app.Activity
 import android.os.Bundle
 import android.view.Menu
+import android.view.MotionEvent
 import android.view.View
 import android.widget.PopupMenu
 import android.widget.Toast
@@ -22,7 +23,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -45,6 +45,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.viewinterop.AndroidView
 import com.edu.unal.tictactoe.ui.theme.TicTacToeTheme
 import androidx.core.view.get
 
@@ -297,23 +298,36 @@ fun TicTacToeBoard(
         verticalArrangement = Arrangement.Center
     ) {
 
-        Row {
-            GameButton(value = board[0], onClick = { onCellClick(0) })
-            GameButton(value = board[1], onClick = { onCellClick(1) })
-            GameButton(value = board[2], onClick = { onCellClick(2) })
-        }
-
-        Row {
-            GameButton(value = board[3], onClick = { onCellClick(3) })
-            GameButton(value = board[4], onClick = { onCellClick(4) })
-            GameButton(value = board[5], onClick = { onCellClick(5) })
-        }
-
-        Row {
-            GameButton(value = board[6], onClick = { onCellClick(6) })
-            GameButton(value = board[7], onClick = { onCellClick(7) })
-            GameButton(value = board[8], onClick = { onCellClick(8) })
-        }
+        AndroidView(
+            modifier = Modifier
+                .size(300.dp)
+                .padding(16.dp),
+            factory = { context ->
+                BoardView(context).apply {
+                    setGame(game)
+                    setOnTouchListener { view, event ->
+                        if (event.action == MotionEvent.ACTION_DOWN) {
+                            view.performClick()
+                            val cellWidth = boardCellWidth
+                            val cellHeight = boardCellHeight
+                            if (cellWidth > 0 && cellHeight > 0) {
+                                val col = (event.x / cellWidth).toInt().coerceIn(0, 2)
+                                val row = (event.y / cellHeight).toInt().coerceIn(0, 2)
+                                val location = row * 3 + col
+                                onCellClick(location)
+                            }
+                        }
+                        true
+                    }
+                }
+            },
+            update = { boardView ->
+                if (board.isNotEmpty()) {
+                    boardView.setGame(game)
+                    boardView.invalidate()
+                }
+            }
+        )
 
         Text(
             text = stringResource(gameStatusResId),
@@ -337,24 +351,5 @@ fun TicTacToeBoard(
         ) {
             Text(stringResource(R.string.new_game_button))
         }
-    }
-}
-
-@Composable
-fun GameButton(
-    value: Char,
-    onClick: () -> Unit
-) {
-    Button(
-        onClick = onClick,
-        modifier = Modifier
-            .size(100.dp)
-            .padding(2.dp),
-        contentPadding = ButtonDefaults.ContentPadding
-    ) {
-        Text(
-            text = value.toString(),
-            fontSize = 48.sp
-        )
     }
 }
