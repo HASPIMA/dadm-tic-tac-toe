@@ -13,11 +13,11 @@ import android.util.Log
 import android.view.View
 
 class BoardView : View {
-    private var humanBitmap: Bitmap? = null
-    private var computerBitmap: Bitmap? = null
+    private var humanBitmap: Bitmap = BitmapFactory.decodeResource(resources, R.drawable.x_img)
+    private var computerBitmap: Bitmap = BitmapFactory.decodeResource(resources, R.drawable.o_img)
 
     // Controls the color and thickness of the lines drawn on the board
-    private var paint: Paint? = null
+    private var paint: Paint = Paint(Paint.ANTI_ALIAS_FLAG)
 
     private var game: TicTacToeGame? = null
     private val drawingRect = Rect()
