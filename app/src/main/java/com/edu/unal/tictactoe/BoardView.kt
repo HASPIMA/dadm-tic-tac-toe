@@ -56,20 +56,20 @@ class BoardView : View {
         val boardHeight = height
 
         // Define lines' color and thickness
-        paint!!.setColor(Color.LTGRAY)
-        paint!!.strokeWidth = GRID_WIDTH.toFloat()
+        paint.setColor(Color.LTGRAY)
+        paint.strokeWidth = GRID_WIDTH.toFloat()
 
         // Draw the two vertical board lines
         val cellWidth = boardWidth / 3
         canvas.drawLine(
             cellWidth.toFloat(), 0f,
             cellWidth.toFloat(), boardHeight.toFloat(),
-            paint!!
+            paint
         )
         canvas.drawLine(
             (cellWidth * 2).toFloat(), 0f,
             (cellWidth * 2).toFloat(), boardHeight.toFloat(),
-            paint!!
+            paint
         )
 
         // Draw the two horizontal board lines
@@ -77,12 +77,12 @@ class BoardView : View {
         canvas.drawLine(
             0f, cellHeight.toFloat(),
             boardWidth.toFloat(), cellHeight.toFloat(),
-            paint!!
+            paint
         )
         canvas.drawLine(
             0f, (cellHeight * 2).toFloat(),
             boardWidth.toFloat(), (cellHeight * 2).toFloat(),
-            paint!!
+            paint
         )
 
         // Draw all the X and O images
@@ -99,10 +99,10 @@ class BoardView : View {
                 val occupant = game!!.getBoardOccupant(i)
                 if (occupant == TicTacToeGame.HUMAN_PLAYER) {
                     drawingRect.set(left, top, right, bottom)
-                    canvas.drawBitmap(humanBitmap!!, null, drawingRect, null)
+                    canvas.drawBitmap(humanBitmap, null, drawingRect, null)
                 } else if (occupant == TicTacToeGame.COMPUTER_PLAYER) {
                     drawingRect.set(left, top, right, bottom)
-                    canvas.drawBitmap(computerBitmap!!, null, drawingRect, null)
+                    canvas.drawBitmap(computerBitmap, null, drawingRect, null)
                 }
             }
         }
