@@ -1,6 +1,9 @@
 package com.edu.unal.tictactoe
 
 import android.app.Activity
+import android.media.AudioAttributes
+import android.media.MediaPlayer
+import android.media.SoundPool
 import android.os.Bundle
 import android.view.Menu
 import android.view.MotionEvent
@@ -32,6 +35,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -205,6 +209,51 @@ fun TicTacToeBoard(
     modifier: Modifier = Modifier,
     resetKey: Int = 0
 ) {
+    val context = LocalContext.current
+
+    val soundPool = remember {
+        SoundPool.Builder()
+            .setMaxStreams(2)
+            .setAudioAttributes(
+                AudioAttributes.Builder()
+                    .setUsage(AudioAttributes.USAGE_GAME)
+                    .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                    .build()
+            )
+            .build()
+    }
+    var humanSoundId by remember { mutableIntStateOf(0) }
+    var computerSoundId by remember { mutableIntStateOf(0) }
+
+    DisposableEffect(context) {
+        humanSoundId = soundPool.load(context, R.raw.human_sound, 1)
+        computerSoundId = soundPool.load(context, R.raw.computer_sound, 1)
+
+        onDispose {
+            soundPool.release()
+        }
+    }
+
+    fun playHumanSound() {
+        val streamId = if (humanSoundId != 0) soundPool.play(humanSoundId, 1f, 1f, 1, 0, 1f) else 0
+        if (streamId == 0) {
+            MediaPlayer.create(context, R.raw.human_sound)?.apply {
+                setOnCompletionListener { release() }
+                start()
+            }
+        }
+    }
+
+    fun playComputerSound() {
+        val streamId = if (computerSoundId != 0) soundPool.play(computerSoundId, 1f, 1f, 1, 0, 1f) else 0
+        if (streamId == 0) {
+            MediaPlayer.create(context, R.raw.computer_sound)?.apply {
+                setOnCompletionListener { release() }
+                start()
+            }
+        }
+    }
+
     var board by remember { mutableStateOf(List(9) { TicTacToeGame.OPEN_SPOT }) }
     var gameStatusResId by remember { mutableIntStateOf(R.string.human_turn) }
     var gameOver by remember { mutableStateOf(false) }
@@ -238,6 +287,7 @@ fun TicTacToeBoard(
             if (move in 0..<TicTacToeGame.BOARD_SIZE) {
                 game.setMove(TicTacToeGame.COMPUTER_PLAYER, move)
                 board = board.toMutableList().also { it[move] = TicTacToeGame.COMPUTER_PLAYER }
+                playComputerSound()
             }
             gameStatusResId = R.string.human_turn
             humanStartsNext = true
@@ -264,6 +314,7 @@ fun TicTacToeBoard(
         board = board.toMutableList().also {
             it[location] = TicTacToeGame.HUMAN_PLAYER
         }
+        playHumanSound()
 
         var winner = game.checkForWinner()
 
@@ -275,6 +326,7 @@ fun TicTacToeBoard(
                 board = board.toMutableList().also {
                     it[move] = TicTacToeGame.COMPUTER_PLAYER
                 }
+                playComputerSound()
                 winner = game.checkForWinner()
             }
         }
