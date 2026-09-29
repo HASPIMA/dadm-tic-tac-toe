@@ -41,6 +41,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -48,10 +49,14 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import com.edu.unal.tictactoe.ui.theme.TicTacToeTheme
 import androidx.core.view.get
+import kotlin.time.Duration.Companion.milliseconds
 
 class MainActivity : ComponentActivity() {
 
@@ -258,6 +263,10 @@ fun TicTacToeBoard(
     var gameStatusResId by remember { mutableIntStateOf(R.string.human_turn) }
     var gameOver by remember { mutableStateOf(false) }
 
+    val coroutineScope = rememberCoroutineScope()
+    var isComputerThinking by remember { mutableStateOf(false) }
+    var computerMoveJob by remember { mutableStateOf<Job?>(null) }
+
     // Tracks who starts next (alternates after each match)
     var humanStartsNext by remember { mutableStateOf(false) }
 
@@ -276,6 +285,7 @@ fun TicTacToeBoard(
     }
 
     fun startNewGame() {
+        computerMoveJob?.cancel()
         game.clearBoard()
         board = List(9) { TicTacToeGame.OPEN_SPOT }
         gameOver = false
@@ -283,18 +293,24 @@ fun TicTacToeBoard(
         if (!humanStartsNext) {
             // Computer starts this match
             gameStatusResId = R.string.computer_turn
-            val move = game.getComputerMove()
-            if (move in 0..<TicTacToeGame.BOARD_SIZE) {
-                game.setMove(TicTacToeGame.COMPUTER_PLAYER, move)
-                board = board.toMutableList().also { it[move] = TicTacToeGame.COMPUTER_PLAYER }
-                playComputerSound()
+            isComputerThinking = true
+            computerMoveJob = coroutineScope.launch {
+                delay(1000L.milliseconds)
+                val move = game.getComputerMove()
+                if (move in 0..<TicTacToeGame.BOARD_SIZE) {
+                    game.setMove(TicTacToeGame.COMPUTER_PLAYER, move)
+                    board = board.toMutableList().also { it[move] = TicTacToeGame.COMPUTER_PLAYER }
+                    playComputerSound()
+                }
+                gameStatusResId = R.string.human_turn
+                humanStartsNext = true
+                isComputerThinking = false
             }
-            gameStatusResId = R.string.human_turn
-            humanStartsNext = true
         } else {
             // Human starts this match
             gameStatusResId = R.string.human_turn
             humanStartsNext = false
+            isComputerThinking = false
         }
     }
 
@@ -305,7 +321,7 @@ fun TicTacToeBoard(
     }
 
     fun onCellClick(location: Int) {
-        if (board[location] != TicTacToeGame.OPEN_SPOT || gameOver) {
+        if (board[location] != TicTacToeGame.OPEN_SPOT || gameOver || isComputerThinking) {
             return
         }
 
@@ -318,29 +334,46 @@ fun TicTacToeBoard(
 
         var winner = game.checkForWinner()
 
-        // Computer's turn if game not finished
-        if (winner == Winner.NOBODY) {
-            val move = game.getComputerMove()
-            if (move in 0..<TicTacToeGame.BOARD_SIZE) {
-                game.setMove(TicTacToeGame.COMPUTER_PLAYER, move)
-                board = board.toMutableList().also {
-                    it[move] = TicTacToeGame.COMPUTER_PLAYER
-                }
-                playComputerSound()
-                winner = game.checkForWinner()
-            }
-        }
-
-        gameStatusResId = when (winner) {
-            Winner.NOBODY -> R.string.human_turn
-            Winner.TIE -> R.string.result_tie
-            Winner.X -> R.string.result_human_wins
-            Winner.O -> R.string.result_computer_wins
-        }
-
         if (winner != Winner.NOBODY) {
+            gameStatusResId = when (winner) {
+                Winner.TIE -> R.string.result_tie
+                Winner.X -> R.string.result_human_wins
+                Winner.O -> R.string.result_computer_wins
+                else -> R.string.human_turn
+            }
             gameOver = true
             recordResult(winner)
+        } else {
+            // Computer's turn after 1-second delay
+            gameStatusResId = R.string.computer_turn
+            isComputerThinking = true
+
+            computerMoveJob = coroutineScope.launch {
+                delay(1000L.milliseconds)
+                val move = game.getComputerMove()
+                if (move in 0..<TicTacToeGame.BOARD_SIZE) {
+                    game.setMove(TicTacToeGame.COMPUTER_PLAYER, move)
+                    board = board.toMutableList().also {
+                        it[move] = TicTacToeGame.COMPUTER_PLAYER
+                    }
+                    playComputerSound()
+                    winner = game.checkForWinner()
+                }
+
+                gameStatusResId = when (winner) {
+                    Winner.NOBODY -> R.string.human_turn
+                    Winner.TIE -> R.string.result_tie
+                    Winner.X -> R.string.result_human_wins
+                    Winner.O -> R.string.result_computer_wins
+                }
+
+                if (winner != Winner.NOBODY) {
+                    gameOver = true
+                    recordResult(winner)
+                }
+
+                isComputerThinking = false
+            }
         }
     }
 
