@@ -1,8 +1,12 @@
 package com.edu.unal.tictactoe
 
 import android.app.Activity
+import android.media.AudioAttributes
+import android.media.MediaPlayer
+import android.media.SoundPool
 import android.os.Bundle
 import android.view.Menu
+import android.view.MotionEvent
 import android.view.View
 import android.widget.PopupMenu
 import android.widget.Toast
@@ -22,7 +26,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -32,11 +35,13 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -44,9 +49,14 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.viewinterop.AndroidView
 import com.edu.unal.tictactoe.ui.theme.TicTacToeTheme
 import androidx.core.view.get
+import kotlin.time.Duration.Companion.milliseconds
 
 class MainActivity : ComponentActivity() {
 
@@ -204,9 +214,58 @@ fun TicTacToeBoard(
     modifier: Modifier = Modifier,
     resetKey: Int = 0
 ) {
+    val context = LocalContext.current
+
+    val soundPool = remember {
+        SoundPool.Builder()
+            .setMaxStreams(2)
+            .setAudioAttributes(
+                AudioAttributes.Builder()
+                    .setUsage(AudioAttributes.USAGE_GAME)
+                    .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                    .build()
+            )
+            .build()
+    }
+    var humanSoundId by remember { mutableIntStateOf(0) }
+    var computerSoundId by remember { mutableIntStateOf(0) }
+
+    DisposableEffect(context) {
+        humanSoundId = soundPool.load(context, R.raw.human_sound, 1)
+        computerSoundId = soundPool.load(context, R.raw.computer_sound, 1)
+
+        onDispose {
+            soundPool.release()
+        }
+    }
+
+    fun playHumanSound() {
+        val streamId = if (humanSoundId != 0) soundPool.play(humanSoundId, 1f, 1f, 1, 0, 1f) else 0
+        if (streamId == 0) {
+            MediaPlayer.create(context, R.raw.human_sound)?.apply {
+                setOnCompletionListener { release() }
+                start()
+            }
+        }
+    }
+
+    fun playComputerSound() {
+        val streamId = if (computerSoundId != 0) soundPool.play(computerSoundId, 1f, 1f, 1, 0, 1f) else 0
+        if (streamId == 0) {
+            MediaPlayer.create(context, R.raw.computer_sound)?.apply {
+                setOnCompletionListener { release() }
+                start()
+            }
+        }
+    }
+
     var board by remember { mutableStateOf(List(9) { TicTacToeGame.OPEN_SPOT }) }
     var gameStatusResId by remember { mutableIntStateOf(R.string.human_turn) }
     var gameOver by remember { mutableStateOf(false) }
+
+    val coroutineScope = rememberCoroutineScope()
+    var isComputerThinking by remember { mutableStateOf(false) }
+    var computerMoveJob by remember { mutableStateOf<Job?>(null) }
 
     // Tracks who starts next (alternates after each match)
     var humanStartsNext by remember { mutableStateOf(false) }
@@ -226,6 +285,7 @@ fun TicTacToeBoard(
     }
 
     fun startNewGame() {
+        computerMoveJob?.cancel()
         game.clearBoard()
         board = List(9) { TicTacToeGame.OPEN_SPOT }
         gameOver = false
@@ -233,17 +293,24 @@ fun TicTacToeBoard(
         if (!humanStartsNext) {
             // Computer starts this match
             gameStatusResId = R.string.computer_turn
-            val move = game.getComputerMove()
-            if (move in 0..<TicTacToeGame.BOARD_SIZE) {
-                game.setMove(TicTacToeGame.COMPUTER_PLAYER, move)
-                board = board.toMutableList().also { it[move] = TicTacToeGame.COMPUTER_PLAYER }
+            isComputerThinking = true
+            computerMoveJob = coroutineScope.launch {
+                delay(1000L.milliseconds)
+                val move = game.getComputerMove()
+                if (move in 0..<TicTacToeGame.BOARD_SIZE) {
+                    game.setMove(TicTacToeGame.COMPUTER_PLAYER, move)
+                    board = board.toMutableList().also { it[move] = TicTacToeGame.COMPUTER_PLAYER }
+                    playComputerSound()
+                }
+                gameStatusResId = R.string.human_turn
+                humanStartsNext = true
+                isComputerThinking = false
             }
-            gameStatusResId = R.string.human_turn
-            humanStartsNext = true
         } else {
             // Human starts this match
             gameStatusResId = R.string.human_turn
             humanStartsNext = false
+            isComputerThinking = false
         }
     }
 
@@ -254,7 +321,7 @@ fun TicTacToeBoard(
     }
 
     fun onCellClick(location: Int) {
-        if (board[location] != TicTacToeGame.OPEN_SPOT || gameOver) {
+        if (board[location] != TicTacToeGame.OPEN_SPOT || gameOver || isComputerThinking) {
             return
         }
 
@@ -263,31 +330,50 @@ fun TicTacToeBoard(
         board = board.toMutableList().also {
             it[location] = TicTacToeGame.HUMAN_PLAYER
         }
+        playHumanSound()
 
         var winner = game.checkForWinner()
 
-        // Computer's turn if game not finished
-        if (winner == Winner.NOBODY) {
-            val move = game.getComputerMove()
-            if (move in 0..<TicTacToeGame.BOARD_SIZE) {
-                game.setMove(TicTacToeGame.COMPUTER_PLAYER, move)
-                board = board.toMutableList().also {
-                    it[move] = TicTacToeGame.COMPUTER_PLAYER
-                }
-                winner = game.checkForWinner()
-            }
-        }
-
-        gameStatusResId = when (winner) {
-            Winner.NOBODY -> R.string.human_turn
-            Winner.TIE -> R.string.result_tie
-            Winner.X -> R.string.result_human_wins
-            Winner.O -> R.string.result_computer_wins
-        }
-
         if (winner != Winner.NOBODY) {
+            gameStatusResId = when (winner) {
+                Winner.TIE -> R.string.result_tie
+                Winner.X -> R.string.result_human_wins
+                Winner.O -> R.string.result_computer_wins
+                else -> R.string.human_turn
+            }
             gameOver = true
             recordResult(winner)
+        } else {
+            // Computer's turn after 1-second delay
+            gameStatusResId = R.string.computer_turn
+            isComputerThinking = true
+
+            computerMoveJob = coroutineScope.launch {
+                delay(1000L.milliseconds)
+                val move = game.getComputerMove()
+                if (move in 0..<TicTacToeGame.BOARD_SIZE) {
+                    game.setMove(TicTacToeGame.COMPUTER_PLAYER, move)
+                    board = board.toMutableList().also {
+                        it[move] = TicTacToeGame.COMPUTER_PLAYER
+                    }
+                    playComputerSound()
+                    winner = game.checkForWinner()
+                }
+
+                gameStatusResId = when (winner) {
+                    Winner.NOBODY -> R.string.human_turn
+                    Winner.TIE -> R.string.result_tie
+                    Winner.X -> R.string.result_human_wins
+                    Winner.O -> R.string.result_computer_wins
+                }
+
+                if (winner != Winner.NOBODY) {
+                    gameOver = true
+                    recordResult(winner)
+                }
+
+                isComputerThinking = false
+            }
         }
     }
 
@@ -297,23 +383,36 @@ fun TicTacToeBoard(
         verticalArrangement = Arrangement.Center
     ) {
 
-        Row {
-            GameButton(value = board[0], onClick = { onCellClick(0) })
-            GameButton(value = board[1], onClick = { onCellClick(1) })
-            GameButton(value = board[2], onClick = { onCellClick(2) })
-        }
-
-        Row {
-            GameButton(value = board[3], onClick = { onCellClick(3) })
-            GameButton(value = board[4], onClick = { onCellClick(4) })
-            GameButton(value = board[5], onClick = { onCellClick(5) })
-        }
-
-        Row {
-            GameButton(value = board[6], onClick = { onCellClick(6) })
-            GameButton(value = board[7], onClick = { onCellClick(7) })
-            GameButton(value = board[8], onClick = { onCellClick(8) })
-        }
+        AndroidView(
+            modifier = Modifier
+                .size(300.dp)
+                .padding(16.dp),
+            factory = { context ->
+                BoardView(context).apply {
+                    setGame(game)
+                    setOnTouchListener { view, event ->
+                        if (event.action == MotionEvent.ACTION_DOWN) {
+                            view.performClick()
+                            val cellWidth = boardCellWidth
+                            val cellHeight = boardCellHeight
+                            if (cellWidth > 0 && cellHeight > 0) {
+                                val col = (event.x / cellWidth).toInt().coerceIn(0, 2)
+                                val row = (event.y / cellHeight).toInt().coerceIn(0, 2)
+                                val location = row * 3 + col
+                                onCellClick(location)
+                            }
+                        }
+                        true
+                    }
+                }
+            },
+            update = { boardView ->
+                if (board.isNotEmpty()) {
+                    boardView.setGame(game)
+                    boardView.invalidate()
+                }
+            }
+        )
 
         Text(
             text = stringResource(gameStatusResId),
@@ -337,24 +436,5 @@ fun TicTacToeBoard(
         ) {
             Text(stringResource(R.string.new_game_button))
         }
-    }
-}
-
-@Composable
-fun GameButton(
-    value: Char,
-    onClick: () -> Unit
-) {
-    Button(
-        onClick = onClick,
-        modifier = Modifier
-            .size(100.dp)
-            .padding(2.dp),
-        contentPadding = ButtonDefaults.ContentPadding
-    ) {
-        Text(
-            text = value.toString(),
-            fontSize = 48.sp
-        )
     }
 }
