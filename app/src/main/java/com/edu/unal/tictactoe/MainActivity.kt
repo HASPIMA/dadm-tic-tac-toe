@@ -1,6 +1,7 @@
 package com.edu.unal.tictactoe
 
 import android.app.Activity
+import android.content.res.Configuration
 import android.media.AudioAttributes
 import android.media.MediaPlayer
 import android.media.SoundPool
@@ -23,7 +24,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenu
@@ -41,21 +44,20 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
-import com.edu.unal.tictactoe.ui.theme.TicTacToeTheme
 import androidx.core.view.get
+import com.edu.unal.tictactoe.ui.theme.TicTacToeTheme
+import kotlinx.coroutines.delay
 import kotlin.time.Duration.Companion.milliseconds
 
 class MainActivity : ComponentActivity() {
@@ -81,11 +83,12 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun TicTacToeApp() {
     val game = remember { TicTacToeGame() }
-    var resetKey by remember { mutableIntStateOf(0) }
+    var resetKey by rememberSaveable { mutableIntStateOf(0) }
     var showDifficultyDialog by remember { mutableStateOf(false) }
     var showQuitDialog by remember { mutableStateOf(false) }
-    var currentDifficulty by remember { mutableStateOf(game.computerDifficultyLevel) }
-    var menuExpanded by remember { mutableStateOf(false) }
+    var currentDifficultyName by rememberSaveable { mutableStateOf(game.computerDifficultyLevel.name) }
+    val currentDifficulty = DifficultyLevel.valueOf(currentDifficultyName)
+    var menuExpanded by rememberSaveable { mutableStateOf(false) }
     val context = LocalContext.current
 
     val menuItems = remember(context) {
@@ -129,7 +132,8 @@ fun TicTacToeApp() {
         TicTacToeBoard(
             game = game,
             modifier = Modifier.padding(innerPadding),
-            resetKey = resetKey
+            resetKey = resetKey,
+            currentDifficulty = currentDifficulty
         )
 
         if (showDifficultyDialog) {
@@ -152,7 +156,7 @@ fun TicTacToeApp() {
                                         selected = (level == currentDifficulty),
                                         onClick = {
                                             game.computerDifficultyLevel = level
-                                            currentDifficulty = level
+                                            currentDifficultyName = level.name
                                             showDifficultyDialog = false
                                             Toast.makeText(
                                                 context,
@@ -212,9 +216,12 @@ fun TicTacToeApp() {
 fun TicTacToeBoard(
     game: TicTacToeGame,
     modifier: Modifier = Modifier,
-    resetKey: Int = 0
+    resetKey: Int = 0,
+    currentDifficulty: DifficultyLevel = DifficultyLevel.Expert
 ) {
     val context = LocalContext.current
+    val configuration = LocalConfiguration.current
+    val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
 
     val soundPool = remember {
         SoundPool.Builder()
@@ -259,21 +266,22 @@ fun TicTacToeBoard(
         }
     }
 
-    var board by remember { mutableStateOf(List(9) { TicTacToeGame.OPEN_SPOT }) }
-    var gameStatusResId by remember { mutableIntStateOf(R.string.human_turn) }
-    var gameOver by remember { mutableStateOf(false) }
-
-    val coroutineScope = rememberCoroutineScope()
-    var isComputerThinking by remember { mutableStateOf(false) }
-    var computerMoveJob by remember { mutableStateOf<Job?>(null) }
+    var boardString by rememberSaveable { mutableStateOf("         ") }
+    var gameStatusResId by rememberSaveable { mutableIntStateOf(R.string.human_turn) }
+    var gameOver by rememberSaveable { mutableStateOf(false) }
+    var isComputerThinking by rememberSaveable { mutableStateOf(false) }
 
     // Tracks who starts next (alternates after each match)
-    var humanStartsNext by remember { mutableStateOf(false) }
+    var humanStartsNext by rememberSaveable { mutableStateOf(false) }
 
     // Scoreboard
-    var humanWins by remember { mutableIntStateOf(0) }
-    var computerWins by remember { mutableIntStateOf(0) }
-    var ties by remember { mutableIntStateOf(0) }
+    var humanWins by rememberSaveable { mutableIntStateOf(0) }
+    var computerWins by rememberSaveable { mutableIntStateOf(0) }
+    var ties by rememberSaveable { mutableIntStateOf(0) }
+
+    // Keep game internal state in sync with saved Compose state
+    game.computerDifficultyLevel = currentDifficulty
+    game.setBoard(boardString.toList())
 
     fun recordResult(winner: Winner) {
         when (winner) {
@@ -285,27 +293,15 @@ fun TicTacToeBoard(
     }
 
     fun startNewGame() {
-        computerMoveJob?.cancel()
         game.clearBoard()
-        board = List(9) { TicTacToeGame.OPEN_SPOT }
+        boardString = "         "
         gameOver = false
 
         if (!humanStartsNext) {
             // Computer starts this match
             gameStatusResId = R.string.computer_turn
+            humanStartsNext = true
             isComputerThinking = true
-            computerMoveJob = coroutineScope.launch {
-                delay(1000L.milliseconds)
-                val move = game.getComputerMove()
-                if (move in 0..<TicTacToeGame.BOARD_SIZE) {
-                    game.setMove(TicTacToeGame.COMPUTER_PLAYER, move)
-                    board = board.toMutableList().also { it[move] = TicTacToeGame.COMPUTER_PLAYER }
-                    playComputerSound()
-                }
-                gameStatusResId = R.string.human_turn
-                humanStartsNext = true
-                isComputerThinking = false
-            }
         } else {
             // Human starts this match
             gameStatusResId = R.string.human_turn
@@ -320,19 +316,44 @@ fun TicTacToeBoard(
         }
     }
 
+    LaunchedEffect(isComputerThinking, gameOver, resetKey) {
+        if (isComputerThinking && !gameOver) {
+            delay(1000L.milliseconds)
+            val move = game.getComputerMove()
+            if (move in 0..<TicTacToeGame.BOARD_SIZE) {
+                game.setMove(TicTacToeGame.COMPUTER_PLAYER, move)
+                boardString = boardString.substring(0, move) + TicTacToeGame.COMPUTER_PLAYER + boardString.substring(move + 1)
+                playComputerSound()
+            }
+
+            val winner = game.checkForWinner()
+            gameStatusResId = when (winner) {
+                Winner.NOBODY -> R.string.human_turn
+                Winner.TIE -> R.string.result_tie
+                Winner.X -> R.string.result_human_wins
+                Winner.O -> R.string.result_computer_wins
+            }
+
+            if (winner != Winner.NOBODY) {
+                gameOver = true
+                recordResult(winner)
+            }
+
+            isComputerThinking = false
+        }
+    }
+
     fun onCellClick(location: Int) {
-        if (board[location] != TicTacToeGame.OPEN_SPOT || gameOver || isComputerThinking) {
+        if (boardString[location] != TicTacToeGame.OPEN_SPOT || gameOver || isComputerThinking) {
             return
         }
 
         // Human's Turn
         game.setMove(TicTacToeGame.HUMAN_PLAYER, location)
-        board = board.toMutableList().also {
-            it[location] = TicTacToeGame.HUMAN_PLAYER
-        }
+        boardString = boardString.substring(0, location) + TicTacToeGame.HUMAN_PLAYER + boardString.substring(location + 1)
         playHumanSound()
 
-        var winner = game.checkForWinner()
+        val winner = game.checkForWinner()
 
         if (winner != Winner.NOBODY) {
             gameStatusResId = when (winner) {
@@ -344,97 +365,141 @@ fun TicTacToeBoard(
             gameOver = true
             recordResult(winner)
         } else {
-            // Computer's turn after 1-second delay
+            // Computer's turn
             gameStatusResId = R.string.computer_turn
             isComputerThinking = true
-
-            computerMoveJob = coroutineScope.launch {
-                delay(1000L.milliseconds)
-                val move = game.getComputerMove()
-                if (move in 0..<TicTacToeGame.BOARD_SIZE) {
-                    game.setMove(TicTacToeGame.COMPUTER_PLAYER, move)
-                    board = board.toMutableList().also {
-                        it[move] = TicTacToeGame.COMPUTER_PLAYER
-                    }
-                    playComputerSound()
-                    winner = game.checkForWinner()
-                }
-
-                gameStatusResId = when (winner) {
-                    Winner.NOBODY -> R.string.human_turn
-                    Winner.TIE -> R.string.result_tie
-                    Winner.X -> R.string.result_human_wins
-                    Winner.O -> R.string.result_computer_wins
-                }
-
-                if (winner != Winner.NOBODY) {
-                    gameOver = true
-                    recordResult(winner)
-                }
-
-                isComputerThinking = false
-            }
         }
     }
 
-    Column(
-        modifier = modifier.fillMaxSize(),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
-    ) {
-
-        AndroidView(
-            modifier = Modifier
-                .size(300.dp)
+    if (isLandscape) {
+        Row(
+            modifier = modifier
+                .fillMaxSize()
                 .padding(16.dp),
-            factory = { context ->
-                BoardView(context).apply {
-                    setGame(game)
-                    setOnTouchListener { view, event ->
-                        if (event.action == MotionEvent.ACTION_DOWN) {
-                            view.performClick()
-                            val cellWidth = boardCellWidth
-                            val cellHeight = boardCellHeight
-                            if (cellWidth > 0 && cellHeight > 0) {
-                                val col = (event.x / cellWidth).toInt().coerceIn(0, 2)
-                                val row = (event.y / cellHeight).toInt().coerceIn(0, 2)
-                                val location = row * 3 + col
-                                onCellClick(location)
+            horizontalArrangement = Arrangement.SpaceEvenly,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            AndroidView(
+                modifier = Modifier
+                    .size(220.dp)
+                    .padding(8.dp),
+                factory = { ctx ->
+                    BoardView(ctx).apply {
+                        setGame(game)
+                        setOnTouchListener { view, event ->
+                            if (event.action == MotionEvent.ACTION_DOWN) {
+                                view.performClick()
+                                val cellWidth = boardCellWidth
+                                val cellHeight = boardCellHeight
+                                if (cellWidth > 0 && cellHeight > 0) {
+                                    val col = (event.x / cellWidth).toInt().coerceIn(0, 2)
+                                    val row = (event.y / cellHeight).toInt().coerceIn(0, 2)
+                                    val location = row * 3 + col
+                                    onCellClick(location)
+                                }
                             }
+                            true
                         }
-                        true
+                    }
+                },
+                update = { boardView ->
+                    if (boardString.length == 9) {
+                        boardView.setGame(game)
+                        boardView.invalidate()
                     }
                 }
-            },
-            update = { boardView ->
-                if (board.isNotEmpty()) {
-                    boardView.setGame(game)
-                    boardView.invalidate()
+            )
+
+            Column(
+                modifier = Modifier
+                    .padding(horizontal = 16.dp)
+                    .verticalScroll(rememberScrollState()),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+                Text(
+                    text = stringResource(gameStatusResId),
+                    fontSize = 20.sp,
+                    modifier = Modifier.padding(top = 8.dp)
+                )
+
+                Row(
+                    modifier = Modifier.padding(top = 12.dp),
+                    horizontalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    Text(stringResource(R.string.number_computer_wins, computerWins))
+                    Text(stringResource(R.string.number_ties, ties))
+                    Text(stringResource(R.string.number_wins_human, humanWins))
+                }
+
+                Button(
+                    onClick = { startNewGame() },
+                    modifier = Modifier.padding(top = 16.dp)
+                ) {
+                    Text(stringResource(R.string.new_game_button))
                 }
             }
-        )
-
-        Text(
-            text = stringResource(gameStatusResId),
-            fontSize = 20.sp,
-            modifier = Modifier.padding(top = 20.dp)
-        )
-
-        // Display wins
-        Row(
-            modifier = Modifier.padding(top = 12.dp),
-            horizontalArrangement = Arrangement.spacedBy(24.dp)
-        ) {
-            Text(stringResource(R.string.number_computer_wins, computerWins))
-            Text(stringResource(R.string.number_ties, ties))
-            Text(stringResource(R.string.number_wins_human, humanWins))
         }
-
-        Button(
-            onClick = { startNewGame() },
-            modifier = Modifier.padding(top = 20.dp)
+    } else {
+        Column(
+            modifier = modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState()),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
         ) {
-            Text(stringResource(R.string.new_game_button))
+            AndroidView(
+                modifier = Modifier
+                    .size(300.dp)
+                    .padding(16.dp),
+                factory = { ctx ->
+                    BoardView(ctx).apply {
+                        setGame(game)
+                        setOnTouchListener { view, event ->
+                            if (event.action == MotionEvent.ACTION_DOWN) {
+                                view.performClick()
+                                val cellWidth = boardCellWidth
+                                val cellHeight = boardCellHeight
+                                if (cellWidth > 0 && cellHeight > 0) {
+                                    val col = (event.x / cellWidth).toInt().coerceIn(0, 2)
+                                    val row = (event.y / cellHeight).toInt().coerceIn(0, 2)
+                                    val location = row * 3 + col
+                                    onCellClick(location)
+                                }
+                            }
+                            true
+                        }
+                    }
+                },
+                update = { boardView ->
+                    if (boardString.length == 9) {
+                        boardView.setGame(game)
+                        boardView.invalidate()
+                    }
+                }
+            )
+
+            Text(
+                text = stringResource(gameStatusResId),
+                fontSize = 20.sp,
+                modifier = Modifier.padding(top = 20.dp)
+            )
+
+            Row(
+                modifier = Modifier.padding(top = 12.dp),
+                horizontalArrangement = Arrangement.spacedBy(24.dp)
+            ) {
+                Text(stringResource(R.string.number_computer_wins, computerWins))
+                Text(stringResource(R.string.number_ties, ties))
+                Text(stringResource(R.string.number_wins_human, humanWins))
+            }
+
+            Button(
+                onClick = { startNewGame() },
+                modifier = Modifier.padding(top = 20.dp)
+            ) {
+                Text(stringResource(R.string.new_game_button))
+            }
         }
     }
 }
