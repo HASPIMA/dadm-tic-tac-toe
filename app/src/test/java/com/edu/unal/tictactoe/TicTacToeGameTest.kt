@@ -24,6 +24,26 @@ class TicTacToeGameTest {
     }
 
     @Test
+    fun testSetBoardAndGetBoard() {
+        val boardState = listOf(
+            TicTacToeGame.HUMAN_PLAYER, TicTacToeGame.COMPUTER_PLAYER, TicTacToeGame.OPEN_SPOT,
+            TicTacToeGame.OPEN_SPOT, TicTacToeGame.HUMAN_PLAYER, TicTacToeGame.OPEN_SPOT,
+            TicTacToeGame.OPEN_SPOT, TicTacToeGame.OPEN_SPOT, TicTacToeGame.COMPUTER_PLAYER
+        )
+        game.setBoard(boardState)
+        assertEquals(boardState, game.getBoard())
+        assertEquals(TicTacToeGame.HUMAN_PLAYER, game.getBoardOccupant(0))
+        assertEquals(TicTacToeGame.COMPUTER_PLAYER, game.getBoardOccupant(1))
+        assertEquals(TicTacToeGame.OPEN_SPOT, game.getBoardOccupant(2))
+        assertEquals(TicTacToeGame.OPEN_SPOT, game.getBoardOccupant(3))
+        assertEquals(TicTacToeGame.HUMAN_PLAYER, game.getBoardOccupant(4))
+        assertEquals(TicTacToeGame.OPEN_SPOT, game.getBoardOccupant(5))
+        assertEquals(TicTacToeGame.OPEN_SPOT, game.getBoardOccupant(6))
+        assertEquals(TicTacToeGame.OPEN_SPOT, game.getBoardOccupant(7))
+        assertEquals(TicTacToeGame.COMPUTER_PLAYER, game.getBoardOccupant(8))
+    }
+
+    @Test
     fun testSetMoveAndGetOccupant() {
         game.setMove(TicTacToeGame.HUMAN_PLAYER, 0)
         assertEquals(TicTacToeGame.HUMAN_PLAYER, game.getBoardOccupant(0))
