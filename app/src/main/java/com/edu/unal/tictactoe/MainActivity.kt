@@ -40,10 +40,12 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.Saver
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -59,6 +61,11 @@ import androidx.core.view.get
 import com.edu.unal.tictactoe.ui.theme.TicTacToeTheme
 import kotlinx.coroutines.delay
 import kotlin.time.Duration.Companion.milliseconds
+
+private val CharListSaver: Saver<MutableState<List<Char>>, CharArray> = Saver(
+    save = { state -> state.value.toCharArray() },
+    restore = { mutableStateOf(it.toList()) }
+)
 
 class MainActivity : ComponentActivity() {
 
@@ -266,7 +273,9 @@ fun TicTacToeBoard(
         }
     }
 
-    var boardString by rememberSaveable { mutableStateOf("         ") }
+    var board by rememberSaveable(saver = CharListSaver) {
+        mutableStateOf(List(9) { TicTacToeGame.OPEN_SPOT })
+    }
     var gameStatusResId by rememberSaveable { mutableIntStateOf(R.string.human_turn) }
     var gameOver by rememberSaveable { mutableStateOf(false) }
     var isComputerThinking by rememberSaveable { mutableStateOf(false) }
@@ -281,7 +290,7 @@ fun TicTacToeBoard(
 
     // Keep game internal state in sync with saved Compose state
     game.computerDifficultyLevel = currentDifficulty
-    game.setBoard(boardString.toList())
+    game.setBoard(board)
 
     fun recordResult(winner: Winner) {
         when (winner) {
@@ -294,7 +303,7 @@ fun TicTacToeBoard(
 
     fun startNewGame() {
         game.clearBoard()
-        boardString = "         "
+        board = List(9) { TicTacToeGame.OPEN_SPOT }
         gameOver = false
 
         if (!humanStartsNext) {
@@ -322,7 +331,9 @@ fun TicTacToeBoard(
             val move = game.getComputerMove()
             if (move in 0..<TicTacToeGame.BOARD_SIZE) {
                 game.setMove(TicTacToeGame.COMPUTER_PLAYER, move)
-                boardString = boardString.substring(0, move) + TicTacToeGame.COMPUTER_PLAYER + boardString.substring(move + 1)
+                board = board.toMutableList().also {
+                    it[move] = TicTacToeGame.COMPUTER_PLAYER
+                }
                 playComputerSound()
             }
 
@@ -344,13 +355,15 @@ fun TicTacToeBoard(
     }
 
     fun onCellClick(location: Int) {
-        if (boardString[location] != TicTacToeGame.OPEN_SPOT || gameOver || isComputerThinking) {
+        if (board[location] != TicTacToeGame.OPEN_SPOT || gameOver || isComputerThinking) {
             return
         }
 
         // Human's Turn
         game.setMove(TicTacToeGame.HUMAN_PLAYER, location)
-        boardString = boardString.substring(0, location) + TicTacToeGame.HUMAN_PLAYER + boardString.substring(location + 1)
+        board = board.toMutableList().also {
+            it[location] = TicTacToeGame.HUMAN_PLAYER
+        }
         playHumanSound()
 
         val winner = game.checkForWinner()
@@ -403,7 +416,7 @@ fun TicTacToeBoard(
                     }
                 },
                 update = { boardView ->
-                    if (boardString.length == 9) {
+                    if (board.isNotEmpty()) {
                         boardView.setGame(game)
                         boardView.invalidate()
                     }
@@ -472,7 +485,7 @@ fun TicTacToeBoard(
                     }
                 },
                 update = { boardView ->
-                    if (boardString.length == 9) {
+                    if (board.isNotEmpty()) {
                         boardView.setGame(game)
                         boardView.invalidate()
                     }
