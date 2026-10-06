@@ -54,6 +54,7 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
@@ -392,66 +393,22 @@ fun TicTacToeBoard(
             horizontalArrangement = Arrangement.SpaceEvenly,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            AndroidView(
-                modifier = Modifier
-                    .size(220.dp)
-                    .padding(8.dp),
-                factory = { ctx ->
-                    BoardView(ctx).apply {
-                        setGame(game)
-                        setOnTouchListener { view, event ->
-                            if (event.action == MotionEvent.ACTION_DOWN) {
-                                view.performClick()
-                                val cellWidth = boardCellWidth
-                                val cellHeight = boardCellHeight
-                                if (cellWidth > 0 && cellHeight > 0) {
-                                    val col = (event.x / cellWidth).toInt().coerceIn(0, 2)
-                                    val row = (event.y / cellHeight).toInt().coerceIn(0, 2)
-                                    val location = row * 3 + col
-                                    onCellClick(location)
-                                }
-                            }
-                            true
-                        }
-                    }
-                },
-                update = { boardView ->
-                    if (board.isNotEmpty()) {
-                        boardView.setGame(game)
-                        boardView.invalidate()
-                    }
-                }
+            GameBoard(
+                size = 220.dp,
+                game = game,
+                board = board,
+                onCellClick = ::onCellClick
             )
-
-            Column(
+            GameInfoControls(
+                gameStatusResId = gameStatusResId,
+                computerWins = computerWins,
+                ties = ties,
+                humanWins = humanWins,
+                onNewGameClick = ::startNewGame,
                 modifier = Modifier
                     .padding(horizontal = 16.dp)
-                    .verticalScroll(rememberScrollState()),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center
-            ) {
-                Text(
-                    text = stringResource(gameStatusResId),
-                    fontSize = 20.sp,
-                    modifier = Modifier.padding(top = 8.dp)
-                )
-
-                Row(
-                    modifier = Modifier.padding(top = 12.dp),
-                    horizontalArrangement = Arrangement.spacedBy(16.dp)
-                ) {
-                    Text(stringResource(R.string.number_computer_wins, computerWins))
-                    Text(stringResource(R.string.number_ties, ties))
-                    Text(stringResource(R.string.number_wins_human, humanWins))
-                }
-
-                Button(
-                    onClick = { startNewGame() },
-                    modifier = Modifier.padding(top = 16.dp)
-                ) {
-                    Text(stringResource(R.string.new_game_button))
-                }
-            }
+                    .verticalScroll(rememberScrollState())
+            )
         }
     } else {
         Column(
@@ -461,58 +418,97 @@ fun TicTacToeBoard(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            AndroidView(
-                modifier = Modifier
-                    .size(300.dp)
-                    .padding(16.dp),
-                factory = { ctx ->
-                    BoardView(ctx).apply {
-                        setGame(game)
-                        setOnTouchListener { view, event ->
-                            if (event.action == MotionEvent.ACTION_DOWN) {
-                                view.performClick()
-                                val cellWidth = boardCellWidth
-                                val cellHeight = boardCellHeight
-                                if (cellWidth > 0 && cellHeight > 0) {
-                                    val col = (event.x / cellWidth).toInt().coerceIn(0, 2)
-                                    val row = (event.y / cellHeight).toInt().coerceIn(0, 2)
-                                    val location = row * 3 + col
-                                    onCellClick(location)
-                                }
-                            }
-                            true
+            GameBoard(
+                size = 300.dp,
+                game = game,
+                board = board,
+                onCellClick = ::onCellClick
+            )
+            GameInfoControls(
+                gameStatusResId = gameStatusResId,
+                computerWins = computerWins,
+                ties = ties,
+                humanWins = humanWins,
+                onNewGameClick = ::startNewGame
+            )
+        }
+    }
+}
+
+@Composable
+private fun GameBoard(
+    size: Dp,
+    game: TicTacToeGame,
+    board: List<Char>,
+    onCellClick: (Int) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    AndroidView(
+        modifier = modifier
+            .size(size)
+            .padding(if (size < 250.dp) 8.dp else 16.dp),
+        factory = { ctx ->
+            BoardView(ctx).apply {
+                setGame(game)
+                setOnTouchListener { view, event ->
+                    if (event.action == MotionEvent.ACTION_DOWN) {
+                        view.performClick()
+                        val cellWidth = boardCellWidth
+                        val cellHeight = boardCellHeight
+                        if (cellWidth > 0 && cellHeight > 0) {
+                            val col = (event.x / cellWidth).toInt().coerceIn(0, 2)
+                            val row = (event.y / cellHeight).toInt().coerceIn(0, 2)
+                            val location = row * 3 + col
+                            onCellClick(location)
                         }
                     }
-                },
-                update = { boardView ->
-                    if (board.isNotEmpty()) {
-                        boardView.setGame(game)
-                        boardView.invalidate()
-                    }
+                    true
                 }
-            )
-
-            Text(
-                text = stringResource(gameStatusResId),
-                fontSize = 20.sp,
-                modifier = Modifier.padding(top = 20.dp)
-            )
-
-            Row(
-                modifier = Modifier.padding(top = 12.dp),
-                horizontalArrangement = Arrangement.spacedBy(24.dp)
-            ) {
-                Text(stringResource(R.string.number_computer_wins, computerWins))
-                Text(stringResource(R.string.number_ties, ties))
-                Text(stringResource(R.string.number_wins_human, humanWins))
             }
-
-            Button(
-                onClick = { startNewGame() },
-                modifier = Modifier.padding(top = 20.dp)
-            ) {
-                Text(stringResource(R.string.new_game_button))
+        },
+        update = { boardView ->
+            if (board.isNotEmpty()) {
+                boardView.setGame(game)
+                boardView.invalidate()
             }
+        }
+    )
+}
+
+@Composable
+private fun GameInfoControls(
+    gameStatusResId: Int,
+    computerWins: Int,
+    ties: Int,
+    humanWins: Int,
+    onNewGameClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier,
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Text(
+            text = stringResource(gameStatusResId),
+            fontSize = 20.sp,
+            modifier = Modifier.padding(top = 12.dp)
+        )
+
+        Row(
+            modifier = Modifier.padding(top = 12.dp),
+            horizontalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            Text(stringResource(R.string.number_computer_wins, computerWins))
+            Text(stringResource(R.string.number_ties, ties))
+            Text(stringResource(R.string.number_wins_human, humanWins))
+        }
+
+        Button(
+            onClick = onNewGameClick,
+            modifier = Modifier.padding(top = 16.dp)
+        ) {
+            Text(stringResource(R.string.new_game_button))
         }
     }
 }
