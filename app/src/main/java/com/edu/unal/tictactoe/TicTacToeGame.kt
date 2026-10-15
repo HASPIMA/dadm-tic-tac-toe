@@ -25,6 +25,24 @@ class TicTacToeGame {
     }
 
     /**
+     * Sets the internal board array to match the provided list.
+     */
+    fun setBoard(boardList: List<Char>) {
+        for (i in 0..<BOARD_SIZE) {
+            if (i in boardList.indices) {
+                mBoard[i] = boardList[i]
+            }
+        }
+    }
+
+    /**
+     * Return a list snapshot of the board occupants.
+     */
+    fun getBoard(): List<Char> {
+        return mBoard.toList()
+    }
+
+    /**
      * Set the given player at the given location on the game board.
      * The location must be available, or the board will not be changed.
      * 
