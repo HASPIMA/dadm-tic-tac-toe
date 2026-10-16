@@ -1,18 +1,18 @@
 /**
- * Import function triggers from their respective submodules:
+ * Callable functions backing online tic-tac-toe.
  *
- * import {onCall} from "firebase-functions/v2/https";
- * import {onDocumentWritten} from "firebase-functions/v2/firestore";
- *
- * See a full list of supported triggers at https://firebase.google.com/docs/functions
+ * Clients can only read Firestore (see firestore.rules); every write to
+ * `/game_sessions` and `/users` goes through these functions.
  */
 
+import { initializeApp } from "firebase-admin/app";
+import { FieldValue, getFirestore } from "firebase-admin/firestore";
 import { setGlobalOptions } from "firebase-functions";
-// import {onRequest} from "firebase-functions/https";
-// import * as logger from "firebase-functions/logger";
-
-// Start writing functions
-// https://firebase.google.com/docs/functions/typescript
+import { CallableRequest, HttpsError, onCall } from "firebase-functions/https";
+import {
+  Winner,
+  guestName,
+} from "./game.js";
 
 // For cost control, you can set the maximum number of containers that can be
 // running at the same time. This helps mitigate the impact of unexpected
@@ -26,7 +26,54 @@ import { setGlobalOptions } from "firebase-functions";
 // this will be the maximum concurrent request count.
 setGlobalOptions({ maxInstances: 10 });
 
-// export const helloWorld = onRequest((request, response) => {
-//   logger.info("Hello logs!", {structuredData: true});
-//   response.send("Hello from Firebase!");
-// });
+initializeApp();
+const db = getFirestore();
+
+const GAMES = "game_sessions";
+const USERS = "users";
+
+interface GameSession {
+  X: string;
+  O: string | null;
+  XName: string;
+  OName: string | null;
+  board: string;
+  active: boolean;
+  winner: Winner | null;
+}
+
+/**
+ * Returns the caller's uid or rejects unauthenticated calls.
+ * @param {CallableRequest} request Incoming callable request.
+ * @return {string} The caller's uid.
+ */
+function requireUid(request: CallableRequest): string {
+  if (!request.auth) {
+    throw new HttpsError("unauthenticated", "You must be signed in.");
+  }
+  return request.auth.uid;
+}
+
+/**
+ * Extracts and validates the `gameId` argument.
+ * @param {unknown} data Callable payload.
+ * @return {string} The game id.
+ */
+function requireGameId(data: unknown): string {
+  const gameId = (data as { gameId?: unknown } | null)?.gameId;
+  if (typeof gameId !== "string" || gameId.length === 0) {
+    throw new HttpsError("invalid-argument", "gameId must be a string.");
+  }
+  return gameId;
+}
+
+/**
+ * Looks up the name shown to other players.
+ * @param {string} uid User id.
+ * @return {Promise<string>} The nickname, or a guest name without profile.
+ */
+async function displayName(uid: string): Promise<string> {
+  const profile = await db.collection(USERS).doc(uid).get();
+  const nickname = profile.get("nickname");
+  return typeof nickname === "string" ? nickname : guestName(uid);
+}
