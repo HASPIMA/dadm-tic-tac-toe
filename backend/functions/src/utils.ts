@@ -1,7 +1,9 @@
+import { initializeApp } from "firebase-admin/app";
 import { getFirestore } from "firebase-admin/firestore";
 import { CallableRequest, HttpsError } from "firebase-functions/https";
 import { guestName, Winner } from "./game";
 
+initializeApp();
 const db = getFirestore();
 
 export interface GameSession {
