@@ -11,7 +11,9 @@ import { setGlobalOptions } from "firebase-functions";
 import { CallableRequest, HttpsError, onCall } from "firebase-functions/https";
 import {
   EMPTY_BOARD,
+  Mark,
   Winner,
+  applyMove,
   guestName,
   parseNickname,
 } from "./game.js";
@@ -137,6 +139,49 @@ export const joinGame = onCall(async (request) => {
     tx.update(ref, {
       O: uid,
       OName: name,
+      updatedAt: FieldValue.serverTimestamp(),
+    });
+  });
+  return { gameId };
+});
+
+export const makeMove = onCall(async (request) => {
+  const uid = requireUid(request);
+  const gameId = requireGameId(request.data);
+  const cell = (request.data as { cell?: unknown }).cell;
+  if (typeof cell !== "number") {
+    throw new HttpsError("invalid-argument", "cell must be a number.");
+  }
+  const ref = db.collection(GAMES).doc(gameId);
+
+  await db.runTransaction(async (tx) => {
+    const snapshot = await tx.get(ref);
+    if (!snapshot.exists) throw new HttpsError("not-found", "Game not found.");
+    const game = snapshot.data() as GameSession;
+    if (game.X !== uid && game.O !== uid) {
+      throw new HttpsError("permission-denied", "You are not in this game.");
+    }
+    if (!game.active) {
+      throw new HttpsError("failed-precondition", "Game is over.");
+    }
+    if (game.O === null) {
+      throw new HttpsError("failed-precondition", "Waiting for an opponent.");
+    }
+
+    const mark: Mark = game.X === uid ? "X" : "O";
+    const result = applyMove(game.board, mark, cell);
+    if ("error" in result) {
+      throw new HttpsError(
+        result.error === "invalid-cell"
+          ? "invalid-argument"
+          : "failed-precondition",
+        result.error,
+      );
+    }
+    tx.update(ref, {
+      board: result.board,
+      winner: result.winner,
+      active: result.winner === null,
       updatedAt: FieldValue.serverTimestamp(),
     });
   });
