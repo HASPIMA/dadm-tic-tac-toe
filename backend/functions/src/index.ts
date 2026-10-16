@@ -10,6 +10,7 @@ import { FieldValue, getFirestore } from "firebase-admin/firestore";
 import { setGlobalOptions } from "firebase-functions";
 import { CallableRequest, HttpsError, onCall } from "firebase-functions/https";
 import {
+  EMPTY_BOARD,
   Winner,
   guestName,
   parseNickname,
@@ -79,6 +80,30 @@ async function displayName(uid: string): Promise<string> {
   return typeof nickname === "string" ? nickname : guestName(uid);
 }
 
+export const createGame = onCall(async (request) => {
+  const uid = requireUid(request);
+  const name = await displayName(uid);
+
+  return db.runTransaction(async (tx) => {
+    const ref = db.collection(GAMES).doc();
+    const newGameSession: GameSession = {
+      X: uid,
+      O: null,
+      XName: name,
+      OName: null,
+      board: EMPTY_BOARD,
+      active: true,
+      winner: null,
+    };
+
+    tx.create(ref, {
+      ...newGameSession,
+      createdAt: FieldValue.serverTimestamp(),
+      updatedAt: FieldValue.serverTimestamp(),
+    });
+    return { gameId: ref.id };
+  });
+});
 export const setNickname = onCall(async (request) => {
   const uid = requireUid(request);
   if (request.auth?.token.firebase.sign_in_provider === "anonymous") {
