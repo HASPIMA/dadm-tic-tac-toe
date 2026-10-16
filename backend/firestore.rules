@@ -1,0 +1,25 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Games are readable by any signed-in user (lobby and "my games" lists).
+    // Every write goes through the callable functions, which use the Admin
+    // SDK and bypass these rules.
+    match /game_sessions/{gameId} {
+      allow read: if request.auth != null;
+      allow write: if false;
+    }
+
+    // Player profiles ({ nickname }). Written only by `setNickname`.
+    match /users/{uid} {
+      allow read: if request.auth != null;
+      allow write: if false;
+    }
+
+    // Anything else is off-limits.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
