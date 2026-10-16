@@ -188,6 +188,34 @@ export const makeMove = onCall(async (request) => {
   return { gameId };
 });
 
+export const leaveGame = onCall(async (request) => {
+  const uid = requireUid(request);
+  const gameId = requireGameId(request.data);
+  const ref = db.collection(GAMES).doc(gameId);
+
+  await db.runTransaction(async (tx) => {
+    const snapshot = await tx.get(ref);
+    if (!snapshot.exists) throw new HttpsError("not-found", "Game not found.");
+    const game = snapshot.data() as GameSession;
+    if (game.X !== uid && game.O !== uid) {
+      throw new HttpsError("permission-denied", "You are not in this game.");
+    }
+    if (!game.active) {
+      throw new HttpsError("failed-precondition", "Game is over.");
+    }
+    // Leaving an open game cancels it (no winner); leaving an ongoing game
+    // forfeits it in favour of the opponent.
+    const winner: Mark | null =
+      game.O === null ? null : game.X === uid ? "O" : "X";
+    tx.update(ref, {
+      active: false,
+      winner,
+      updatedAt: FieldValue.serverTimestamp(),
+    });
+  });
+  return { gameId };
+});
+
 export const setNickname = onCall(async (request) => {
   const uid = requireUid(request);
   if (request.auth?.token.firebase.sign_in_provider === "anonymous") {
