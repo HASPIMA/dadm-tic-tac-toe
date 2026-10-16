@@ -114,6 +114,35 @@ export const createGame = onCall(async (request) => {
     return { gameId: ref.id };
   });
 });
+
+export const joinGame = onCall(async (request) => {
+  const uid = requireUid(request);
+  const gameId = requireGameId(request.data);
+  const name = await displayName(uid);
+  const ref = db.collection(GAMES).doc(gameId);
+
+  await db.runTransaction(async (tx) => {
+    const snapshot = await tx.get(ref);
+    if (!snapshot.exists) throw new HttpsError("not-found", "Game not found.");
+    const game = snapshot.data() as GameSession;
+    if (game.X === uid) {
+      throw new HttpsError(
+        "failed-precondition",
+        "You cannot join your own game.",
+      );
+    }
+    if (!game.active || game.O !== null) {
+      throw new HttpsError("failed-precondition", "Game is no longer open.");
+    }
+    tx.update(ref, {
+      O: uid,
+      OName: name,
+      updatedAt: FieldValue.serverTimestamp(),
+    });
+  });
+  return { gameId };
+});
+
 export const setNickname = onCall(async (request) => {
   const uid = requireUid(request);
   if (request.auth?.token.firebase.sign_in_provider === "anonymous") {
