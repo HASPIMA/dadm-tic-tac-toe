@@ -12,6 +12,7 @@ import { CallableRequest, HttpsError, onCall } from "firebase-functions/https";
 import {
   Winner,
   guestName,
+  parseNickname,
 } from "./game.js";
 
 // For cost control, you can set the maximum number of containers that can be
@@ -77,3 +78,21 @@ async function displayName(uid: string): Promise<string> {
   const nickname = profile.get("nickname");
   return typeof nickname === "string" ? nickname : guestName(uid);
 }
+
+export const setNickname = onCall(async (request) => {
+  const uid = requireUid(request);
+  if (request.auth?.token.firebase.sign_in_provider === "anonymous") {
+    throw new HttpsError("permission-denied", "Guests cannot set a nickname.");
+  }
+  const nickname = parseNickname(
+    (request.data as { nickname?: unknown } | null)?.nickname,
+  );
+  if (nickname === null) {
+    throw new HttpsError(
+      "invalid-argument",
+      "nickname must be between 3 and 20 characters.",
+    );
+  }
+  await db.collection(USERS).doc(uid).set({ nickname });
+  return { nickname };
+});
