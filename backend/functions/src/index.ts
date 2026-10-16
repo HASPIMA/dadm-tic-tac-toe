@@ -85,6 +85,16 @@ export const createGame = onCall(async (request) => {
   const name = await displayName(uid);
 
   return db.runTransaction(async (tx) => {
+    const open = await tx.get(
+      db
+        .collection(GAMES)
+        .where("X", "==", uid)
+        .where("O", "==", null)
+        .where("active", "==", true)
+        .limit(1),
+    );
+    if (!open.empty) return { gameId: open.docs[0].id };
+
     const ref = db.collection(GAMES).doc();
     const newGameSession: GameSession = {
       X: uid,
