@@ -23,4 +23,54 @@
     <string name="no">No</string>
     <string name="cancel">Cancel</string>
     <string name="menu">Menu</string>
+    <string name="back">Back</string>
+    <string name="close">Close</string>
+    <string name="retry">Retry</string>
+
+    <!-- Main menu -->
+    <string name="menu_vs_computer">vs Computer</string>
+    <string name="menu_online">Online</string>
+    <string name="menu_account">Account</string>
+    <string name="playing_as">Playing as %1$s</string>
+    <string name="signing_in">Signing in…</string>
+
+    <!-- Account -->
+    <string name="account_title">Account</string>
+    <string name="account_guest">You are playing as a guest (%1$s).</string>
+    <string name="account_signed_in">Signed in as %1$s (%2$s).</string>
+    <string name="create_account">Create account</string>
+    <string name="sign_in">Sign in</string>
+    <string name="sign_out">Sign out</string>
+    <string name="email">Email</string>
+    <string name="password">Password</string>
+    <string name="nickname">Nickname</string>
+    <string name="nickname_invalid">Nickname must be between 3 and 20 characters.</string>
+    <string name="email_password_required">Enter an email and a password.</string>
+    <string name="guest_games_warning">Signing in to another account will make you lose your active guest games.</string>
+
+    <!-- Lobby -->
+    <string name="create_game">Create game</string>
+    <string name="open_games">Open games</string>
+    <string name="no_open_games">No open games. Create one!</string>
+    <string name="my_games">My games</string>
+    <string name="no_my_games">You have no active games.</string>
+    <string name="join">Join</string>
+    <string name="vs_player">vs %1$s</string>
+
+    <!-- Online game -->
+    <string name="you_are">You are %1$s</string>
+    <string name="waiting_for_opponent">Waiting for opponent…</string>
+    <string name="your_turn">Your turn</string>
+    <string name="their_turn">%1$s\'s turn</string>
+    <string name="result_you_won">You won!</string>
+    <string name="result_you_lost">You lost</string>
+    <string name="result_opponent_left">%1$s left. You won!</string>
+    <string name="result_you_left">You forfeited</string>
+    <string name="result_cancelled">Game cancelled</string>
+    <string name="cancel_game">Cancel game</string>
+    <string name="forfeit_game">Forfeit</string>
+    <string name="forfeit_confirm_title">Forfeit game?</string>
+    <string name="forfeit_confirm_message">Your opponent will win.</string>
+    <string name="back_to_lobby">Back to lobby</string>
+    <string name="game_not_found">Game not found</string>
 </resources>
