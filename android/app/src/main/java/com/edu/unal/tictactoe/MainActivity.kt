@@ -2,9 +2,6 @@ package com.edu.unal.tictactoe
 
 import android.app.Activity
 import android.content.res.Configuration
-import android.media.AudioAttributes
-import android.media.MediaPlayer
-import android.media.SoundPool
 import android.os.Bundle
 import android.view.Menu
 import android.view.MotionEvent
@@ -12,6 +9,7 @@ import android.view.View
 import android.widget.PopupMenu
 import android.widget.Toast
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.Arrangement
@@ -38,7 +36,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
@@ -59,6 +56,12 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.view.get
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.edu.unal.tictactoe.online.AccountViewModel
+import com.edu.unal.tictactoe.online.FirebaseEmulators
+import com.edu.unal.tictactoe.online.LobbyScreen
+import com.edu.unal.tictactoe.online.MenuScreen
+import com.edu.unal.tictactoe.online.OnlineGameScreen
 import com.edu.unal.tictactoe.ui.theme.TicTacToeTheme
 import kotlinx.coroutines.delay
 import kotlin.time.Duration.Companion.milliseconds
@@ -72,6 +75,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        FirebaseEmulators.connectIfConfigured()
         enableEdgeToEdge()
 
         setContent {
@@ -87,9 +91,71 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+/** Screens of the app. There is no navigation library; see [TicTacToeApp]. */
+private sealed interface Screen {
+    data object Menu : Screen
+    data object LocalGame : Screen
+    data object Lobby : Screen
+    data class OnlineGame(val gameId: String) : Screen
+}
+
+private val ScreenSaver: Saver<Screen, String> = Saver(
+    save = { screen ->
+        when (screen) {
+            Screen.Menu -> "menu"
+            Screen.LocalGame -> "local"
+            Screen.Lobby -> "lobby"
+            is Screen.OnlineGame -> "online:${screen.gameId}"
+        }
+    },
+    restore = { saved ->
+        when {
+            saved == "local" -> Screen.LocalGame
+            saved == "lobby" -> Screen.Lobby
+            saved.startsWith("online:") -> Screen.OnlineGame(saved.removePrefix("online:"))
+            else -> Screen.Menu
+        }
+    }
+)
+
 @Composable
 fun TicTacToeApp() {
+    var screen by rememberSaveable(stateSaver = ScreenSaver) { mutableStateOf<Screen>(Screen.Menu) }
+    val accountViewModel: AccountViewModel = viewModel()
+
+    when (val current = screen) {
+        Screen.Menu -> MenuScreen(
+            accountViewModel = accountViewModel,
+            onPlayLocal = { screen = Screen.LocalGame },
+            onPlayOnline = { screen = Screen.Lobby }
+        )
+
+        Screen.LocalGame -> {
+            BackHandler { screen = Screen.Menu }
+            LocalGameScreen(onBack = { screen = Screen.Menu })
+        }
+
+        Screen.Lobby -> {
+            BackHandler { screen = Screen.Menu }
+            LobbyScreen(
+                onBack = { screen = Screen.Menu },
+                onOpenGame = { gameId -> screen = Screen.OnlineGame(gameId) }
+            )
+        }
+
+        is Screen.OnlineGame -> {
+            BackHandler { screen = Screen.Lobby }
+            OnlineGameScreen(
+                gameId = current.gameId,
+                onBack = { screen = Screen.Lobby }
+            )
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun LocalGameScreen(onBack: () -> Unit) {
     val game = remember { TicTacToeGame() }
     var resetKey by rememberSaveable { mutableIntStateOf(0) }
     var showDifficultyDialog by remember { mutableStateOf(false) }
@@ -110,7 +176,12 @@ fun TicTacToeApp() {
         modifier = Modifier.fillMaxSize(),
         topBar = {
             TopAppBar(
-                title = { Text(stringResource(R.string.app_name)) },
+                title = { Text(stringResource(R.string.menu_vs_computer)) },
+                navigationIcon = {
+                    TextButton(onClick = onBack) {
+                        Text(stringResource(R.string.back))
+                    }
+                },
                 actions = {
                     TextButton(onClick = { menuExpanded = true }) {
                         Text(stringResource(R.string.menu))
@@ -227,52 +298,10 @@ fun TicTacToeBoard(
     resetKey: Int = 0,
     currentDifficulty: DifficultyLevel = DifficultyLevel.Expert
 ) {
-    val context = LocalContext.current
     val configuration = LocalConfiguration.current
     val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
 
-    val soundPool = remember {
-        SoundPool.Builder()
-            .setMaxStreams(2)
-            .setAudioAttributes(
-                AudioAttributes.Builder()
-                    .setUsage(AudioAttributes.USAGE_GAME)
-                    .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
-                    .build()
-            )
-            .build()
-    }
-    var humanSoundId by remember { mutableIntStateOf(0) }
-    var computerSoundId by remember { mutableIntStateOf(0) }
-
-    DisposableEffect(context) {
-        humanSoundId = soundPool.load(context, R.raw.human_sound, 1)
-        computerSoundId = soundPool.load(context, R.raw.computer_sound, 1)
-
-        onDispose {
-            soundPool.release()
-        }
-    }
-
-    fun playHumanSound() {
-        val streamId = if (humanSoundId != 0) soundPool.play(humanSoundId, 1f, 1f, 1, 0, 1f) else 0
-        if (streamId == 0) {
-            MediaPlayer.create(context, R.raw.human_sound)?.apply {
-                setOnCompletionListener { release() }
-                start()
-            }
-        }
-    }
-
-    fun playComputerSound() {
-        val streamId = if (computerSoundId != 0) soundPool.play(computerSoundId, 1f, 1f, 1, 0, 1f) else 0
-        if (streamId == 0) {
-            MediaPlayer.create(context, R.raw.computer_sound)?.apply {
-                setOnCompletionListener { release() }
-                start()
-            }
-        }
-    }
+    val sounds = rememberGameSounds()
 
     var board by rememberSaveable(saver = CharListSaver) {
         mutableStateOf(List(9) { TicTacToeGame.OPEN_SPOT })
@@ -335,7 +364,7 @@ fun TicTacToeBoard(
                 board = board.toMutableList().also {
                     it[move] = TicTacToeGame.COMPUTER_PLAYER
                 }
-                playComputerSound()
+                sounds.playComputer()
             }
 
             val winner = game.checkForWinner()
@@ -365,7 +394,7 @@ fun TicTacToeBoard(
         board = board.toMutableList().also {
             it[location] = TicTacToeGame.HUMAN_PLAYER
         }
-        playHumanSound()
+        sounds.playHuman()
 
         val winner = game.checkForWinner()
 
@@ -436,7 +465,7 @@ fun TicTacToeBoard(
 }
 
 @Composable
-private fun GameBoard(
+internal fun GameBoard(
     size: Dp,
     game: TicTacToeGame,
     board: List<Char>,

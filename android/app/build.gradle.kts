@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
@@ -5,6 +7,16 @@ plugins {
     // Add the Google services Gradle plugin
     id("com.google.gms.google-services")
 }
+
+// Opt-in: host of the local Firebase emulators for debug builds, e.g. 10.0.2.2.
+// Set `firebase.emulatorHost` in local.properties or pass -Pfirebase.emulatorHost=...
+// Unset (the default), the app uses the production Firebase project.
+val firebaseEmulatorHost: String? =
+    (findProperty("firebase.emulatorHost") as String?)
+        ?: rootProject.file("local.properties").takeIf { it.exists() }?.let { file ->
+            Properties().apply { file.inputStream().use(::load) }
+                .getProperty("firebase.emulatorHost")
+        }
 
 android {
     namespace = "com.edu.unal.tictactoe"
@@ -20,9 +32,19 @@ android {
         versionName = "2.2"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        buildConfigField("String", "FIREBASE_EMULATOR_HOST", "null")
+        manifestPlaceholders["usesCleartextTraffic"] = false
     }
 
     buildTypes {
+        debug {
+            if (!firebaseEmulatorHost.isNullOrBlank()) {
+                buildConfigField("String", "FIREBASE_EMULATOR_HOST", "\"$firebaseEmulatorHost\"")
+                // The emulators only speak plain HTTP
+                manifestPlaceholders["usesCleartextTraffic"] = true
+            }
+        }
         release {
             optimization {
                 enable = false
@@ -35,6 +57,7 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 }
 
